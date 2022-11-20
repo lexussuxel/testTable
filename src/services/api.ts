@@ -35,7 +35,6 @@ export const getTickers = (
         ,
         dailyChangePercent,
         last,
-        ,
         dailyVolume,
         dailyHigh,
         dailyLow,

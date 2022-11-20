@@ -1,12 +1,13 @@
-import React, { useCallback, useEffect } from 'react';
+import React, {useCallback, useEffect, useState} from 'react';
 import {
   createColumnHelper,
   flexRender,
-  getCoreRowModel,
+  getCoreRowModel, getSortedRowModel, SortingState,
   useReactTable,
 } from '@tanstack/react-table';
 import { CurrencyDetail } from '../services/types';
 import Money from './cells/Money';
+import Percent from './cells/Percent';
 import { getTickers } from '../services/api';
 import {
   Box,
@@ -56,7 +57,7 @@ const columns = [
     header: () => <HeaderCellText align={'right'}>Daily High</HeaderCellText>,
   }),
   columnHelper.accessor('dailyChangePercent', {
-    cell: (info) => <Money>{info.getValue()}</Money>,
+    cell: (info) => <Percent>{info.getValue()}</Percent>,
     header: () => <HeaderCellText align={'right'}>Change, %</HeaderCellText>,
   }),
   columnHelper.accessor('dailyLow', {
@@ -74,22 +75,29 @@ const CurrencyTable: React.FC = () => {
     getTickers(['BTC', 'ETH', 'XRP', 'LTC']),
   );
 
+  const [sorting, setSorting] = React.useState<SortingState>([]);
+
   useEffect(() => {
     execute();
   }, []);
-
-  const reloadTable = useCallback(() => {
-    alert('I do nothing');
-  }, []);
-
-  const { isShown: isExplainerShown, toggle: toggleShowExplainer } =
-    useCatgirlExplainer();
 
   const table = useReactTable({
     data: result || [],
     columns,
     getCoreRowModel: getCoreRowModel(),
+    state: {
+      sorting,
+    },
+    onSortingChange: setSorting,
+    getSortedRowModel: getSortedRowModel(),
   });
+
+  const reloadTable = useCallback(() => {
+    execute();
+  }, []);
+
+  const { isShown: isExplainerShown, toggle: toggleShowExplainer } =
+    useCatgirlExplainer();
 
   if (status === 'loading')
     return (
@@ -97,7 +105,6 @@ const CurrencyTable: React.FC = () => {
         <CircularProgress />
       </Box>
     );
-
   return (
     <>
       <Box sx={{ mb: 3 }}>
@@ -119,13 +126,26 @@ const CurrencyTable: React.FC = () => {
             {table.getHeaderGroups().map((headerGroup) => (
               <TableRow key={headerGroup.id}>
                 {headerGroup.headers.map((header) => (
-                  <TableCell key={header.id}>
+                  <TableCell
+                      key={header.id} >
                     {header.isPlaceholder
-                      ? null
-                      : flexRender(
-                          header.column.columnDef.header,
-                          header.getContext(),
-                        )}
+                        ? null
+                        :
+                        <div
+                            {...{
+                              onClick: header.column.getToggleSortingHandler(),
+                            }}
+                        >
+                          {flexRender(
+                              header.column.columnDef.header,
+                              header.getContext(),
+                          )}
+                          {{
+                            asc: ' 🔼',
+                            desc: ' 🔽',
+                          }[header.column.getIsSorted() as string] ?? null}
+                        </div>
+                    }
                   </TableCell>
                 ))}
               </TableRow>
